@@ -51,6 +51,10 @@ app.use(cors({
   credentials: true
 }));
 
+app.get('/', (req, res) => {
+  res.send('Hello World');
+});
+
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
@@ -94,4 +98,4 @@ mongoose.connect(process.env.MONGO_URI,{ autoIndex: false })
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT,'0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
