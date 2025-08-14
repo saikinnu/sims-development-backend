@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 exports.createSubject = async (req, res) => {
   try {
-    const { name, className, teachers, maxMarks, passingMarks, category } = req.body;
+    const { name, className,section, teachers, maxMarks, passingMarks, category } = req.body;
     
     // Validation
     if (!name || !className || !teachers || teachers.length === 0) {
@@ -20,6 +20,7 @@ exports.createSubject = async (req, res) => {
     const subjectData = {
       name: name.trim(),
       className: className.trim(),
+      section: section.trim(),
       teachers: validTeachers,
       maxMarks: maxMarks || 100,
       passingMarks: passingMarks || 35,
@@ -48,7 +49,7 @@ exports.getAllSubjects = async (req, res) => {
 
 exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
   try {
-    console.log('getAllSubjectsUnderMyAdmin called with user ID:', req.user._id);
+    
     
     const teacher = await Teacher.findOne({ users: req.user._id });
     console.log('Found teacher:', teacher ? 'Yes' : 'No');
@@ -58,10 +59,78 @@ exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
       return res.status(404).json({ message: 'Teacher not found' });
     }
     
-    console.log('Teacher admin_id:', teacher.admin_id);
-    const subjects = await Subject.find({ admin_id: teacher.admin_id }).sort({ createdAt: -1 });
-    console.log('Found subjects count:', subjects.length);
-    console.log('Subjects:', subjects.map(s => ({ name: s.name, className: s.className })));
+    
+    let subjects;
+    
+    // Check if teacher is a class teacher
+    if (teacher.class_teacher) {
+      // If teacher is a class teacher, only fetch subjects from their assigned class
+      const classTeacherAssignment = teacher.class_teacher;
+      
+      // Parse the class_teacher field to get class and section
+      // Expected format: "1st-A", "2nd-B", "3rd-C", etc.
+      const lastHyphenIndex = classTeacherAssignment.lastIndexOf('-');
+      if (lastHyphenIndex === -1) {
+        return res.status(400).json({ 
+          message: 'Invalid class teacher assignment format. Expected format: "className-section"' 
+        });
+      }
+      
+      const className = classTeacherAssignment.substring(0, lastHyphenIndex);
+      const section = classTeacherAssignment.substring(lastHyphenIndex + 1);
+      
+      // Validate section is a single letter
+      if (!/^[A-Z]$/.test(section)) {
+        return res.status(400).json({ 
+          message: 'Invalid section format. Section must be a single letter (A-Z)' 
+        });
+      }
+      
+      // First, try to find subjects with exact className match
+      let exactMatchSubjects = await Subject.find({ 
+        admin_id: teacher.admin_id,
+        className: `${className}`,
+        section: section
+      });
+      
+      // If no exact match, try different naming conventions
+      if (exactMatchSubjects.length === 0) {
+        // Try format like "1A", "2B" (class + section)
+        exactMatchSubjects = await Subject.find({ 
+          admin_id: teacher.admin_id,
+          className: `${className}${section}`,
+          section: section
+        });
+      }
+      
+      // If still no match, try format like "Class 1", "Grade 5" (just class name)
+      if (exactMatchSubjects.length === 0) {
+        exactMatchSubjects = await Subject.find({ 
+          admin_id: teacher.admin_id,
+          className: className,
+          section: section
+        });
+      }
+      
+      // If still no match, try partial matches
+      if (exactMatchSubjects.length === 0) {
+        exactMatchSubjects = await Subject.find({ 
+          admin_id: teacher.admin_id,
+          className: { $regex: className, $options: 'i' },
+          section: section
+        });
+      }
+      
+      subjects = exactMatchSubjects;
+      
+      console.log(`Teacher ${teacher.full_name} is class teacher for ${className}-${section}`);
+      console.log(`Found ${subjects.length} subjects for class ${className}`);
+      console.log('Subject classNames:', subjects.map(s => s.className));
+    } else {
+      // For teachers without class assignment, fetch all subjects under their admin
+      subjects = await Subject.find({ admin_id: teacher.admin_id }).sort({ createdAt: -1 });
+      console.log(`Teacher ${teacher.full_name} has no class assignment, found ${subjects.length} total subjects`);
+    }
     
     res.json(subjects);
   } catch (error) {
@@ -72,9 +141,6 @@ exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
 
 exports.getSubjectById = async (req, res) => {
   try {
-    console.log('getSubjectById called with ID:', req.params.id);
-    console.log('ID type:', typeof req.params.id);
-    console.log('ID length:', req.params.id?.length);
     
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -93,7 +159,6 @@ exports.getSubjectById = async (req, res) => {
 
 exports.updateSubject = async (req, res) => {
   try {
-    console.log('updateSubject called with ID:', req.params.id);
     
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -101,7 +166,7 @@ exports.updateSubject = async (req, res) => {
       return res.status(400).json({ message: 'Invalid subject ID format' });
     }
 
-    const { name, className, teachers, maxMarks, passingMarks, category } = req.body;
+    const { name, className,section, teachers, maxMarks, passingMarks, category } = req.body;
     
     // Validation
     if (!name || !className || !teachers || teachers.length === 0) {
@@ -117,6 +182,7 @@ exports.updateSubject = async (req, res) => {
     const updateData = {
       name: name.trim(),
       className: className.trim(),
+      section: section.trim(),
       teachers: validTeachers,
       maxMarks: maxMarks || 100,
       passingMarks: passingMarks || 35,
@@ -139,7 +205,6 @@ exports.updateSubject = async (req, res) => {
 
 exports.deleteSubject = async (req, res) => {
   try {
-    console.log('deleteSubject called with ID:', req.params.id);
     
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {

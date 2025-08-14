@@ -36,6 +36,7 @@ const diaryRoutes = require('./routers/CoreUserRoutes/diaryRoutes');
 const leaveRoutes = require('./routers/Administrative/leaveRoutes');
 const paymentDetailsRoutes = require('./routers/Administrative/paymentDetailsRoutes');
 
+
 const app = express();
 app.use(express.json());
 const cors = require('cors');
@@ -98,4 +99,4 @@ mongoose.connect(process.env.MONGO_URI,{ autoIndex: false })
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT,'0.0.0.0', () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT,"0.0.0.0", () => console.log(`🚀 Server running on port ${PORT}`));

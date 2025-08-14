@@ -60,25 +60,56 @@ exports.getExamReportOverview = async (req, res) => {
 
     const exams = await Exam.find({ });
 
-    
-    const students = await Student.find({ admin_id });
+    // Fetch students based on user role
+    let students;
+    if (req.user.role === 'teacher' && teacher.class_teacher) {
+      // If teacher is a class teacher, only fetch students from their assigned class
+      const classTeacherAssignment = teacher.class_teacher;
+      
+      // Parse the class_teacher field to get class and section
+      // Expected format: "1st-A", "2nd-B", "3rd-C", etc.
+      const lastHyphenIndex = classTeacherAssignment.lastIndexOf('-');
+      if (lastHyphenIndex === -1) {
+        return res.status(400).json({ 
+          message: 'Invalid class teacher assignment format. Expected format: "className-section"' 
+        });
+      }
+      
+      const className = classTeacherAssignment.substring(0, lastHyphenIndex);
+      const section = classTeacherAssignment.substring(lastHyphenIndex + 1);
+      
+      // Validate section is a single letter
+      if (!/^[A-Z]$/.test(section)) {
+        return res.status(400).json({ 
+          message: 'Invalid section format. Section must be a single letter (A-Z)' 
+        });
+      }
+      
+      // Find students in the assigned class and section
+      students = await Student.find({ 
+        admin_id: teacher.admin_id,
+        class_id: className,
+        section: section
+      });
+      
+      console.log(`Teacher ${teacher.full_name} is class teacher for ${className}-${section}, found ${students.length} students`);
+    } else {
+      // For admins or teachers without class assignment, fetch all students
+      students = await Student.find({ admin_id });
+    }
 
-    
     const grades = await StudentMarks.find().populate('subject_id').populate('exam_id').populate({
       path: 'student_id',
       match: { admin_id: admin_id }
     });
 
-    
     const classes = await Class.find({ admin_id });
 
-    
     const classIdToName = {};
     classes.forEach(cls => {
       classIdToName[cls._id?.toString() || cls.class_id] = cls.class_name || cls.grade;
     });
 
-    
     const formattedStudents = students.map(stu => ({
       id: stu.user_id,
       name: stu.full_name,
@@ -88,7 +119,6 @@ exports.getExamReportOverview = async (req, res) => {
       ...stu._doc
     }));
 
-    
     // Create a map of exam_id to class_id from StudentMarks
     const examClassMap = {};
     grades.forEach(grade => {
@@ -112,7 +142,6 @@ exports.getExamReportOverview = async (req, res) => {
       };
     });
 
-    
     const formattedGrades = grades
       .filter(grade => grade.student_id) // Filter out grades where student is null
       .map(grade => ({
@@ -513,10 +542,11 @@ exports.getAllResultsUnderMyAdmin = async (req, res) => {
     }
 
     let admin_id;
+    let teacher = null;
 
     // Check if user is a teacher
     if (req.user.role === 'teacher') {
-      const teacher = await Teacher.findOne({ users: req.user._id });
+      teacher = await Teacher.findOne({ users: req.user._id });
       if (!teacher) {
         return res.status(404).json({ message: 'Teacher profile not found' });
       }
@@ -542,14 +572,55 @@ exports.getAllResultsUnderMyAdmin = async (req, res) => {
     if (examType) query.examType = examType;
     
     console.log('Query for Result.find:', query);
-    const teacher = await Teacher.findOne({ users: req.user._id });
-    
 
-    let results = await Result.find({admin_id: teacher.admin_id});
+    let results;
+    
+    if (req.user.role === 'teacher' && teacher.class_teacher) {
+      // If teacher is a class teacher, only fetch results from their assigned class students
+      const classTeacherAssignment = teacher.class_teacher;
+      
+      // Parse the class_teacher field to get class and section
+      const lastHyphenIndex = classTeacherAssignment.lastIndexOf('-');
+      if (lastHyphenIndex === -1) {
+        return res.status(400).json({ 
+          message: 'Invalid class teacher assignment format. Expected format: "className-section"' 
+        });
+      }
+      
+      const className = classTeacherAssignment.substring(0, lastHyphenIndex);
+      const section = classTeacherAssignment.substring(lastHyphenIndex + 1);
+      
+      // Validate section is a single letter
+      if (!/^[A-Z]$/.test(section)) {
+        return res.status(400).json({ 
+          message: 'Invalid section format. Section must be a single letter (A-Z)' 
+        });
+      }
+      
+      // Find students in the assigned class and section
+      const assignedStudents = await Student.find({ 
+        admin_id: teacher.admin_id,
+        class_id: className,
+        section: section
+      });
+      
+      const studentIds = assignedStudents.map(student => student.user_id);
+      
+      // Filter results to only include students from the assigned class
+      results = await Result.find({ 
+        admin_id: teacher.admin_id,
+        id: { $in: studentIds }
+      });
+      
+      console.log(`Teacher ${teacher.full_name} is class teacher for ${className}-${section}, found ${assignedStudents.length} students and ${results.length} results`);
+    } else {
+      // For admins or teachers without class assignment, fetch all results
+      results = await Result.find({ admin_id: admin_id });
+    }
+    
     console.log('Raw results from database:', results.length, 'records found');
     console.log('Subjects config available:', Object.keys(subjectsConfig));
 
-    
     results = results.map(student => {
       console.log('Processing student:', student.name, 'with marks:', student.marks);
       let totalMarksObtained = 0;
@@ -582,7 +653,6 @@ exports.getAllResultsUnderMyAdmin = async (req, res) => {
       return processedStudent;
     });
 
-    
     if (search) {
       const searchLower = search.toLowerCase();
       results = results.filter(student =>

@@ -12,6 +12,9 @@ const SubjectSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    section:{
+      type:String
+    },
     category: {
       type: String
     },
