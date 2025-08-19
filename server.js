@@ -52,7 +52,6 @@ const cors = require('cors');
 //   ],
 //   credentials: true
 // }));
-app.use(cors());
 
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
