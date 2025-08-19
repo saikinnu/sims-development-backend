@@ -44,7 +44,7 @@ const cors = require('cors');
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'http://13.54.13.60:5000',
+    'capacitor://localhost',
     'https://sims-baseldts.vercel.app',
     'https://sims-frontend-dun.vercel.app',
     'https://sims-client-govt.vercel.app',
@@ -52,6 +52,7 @@ app.use(cors({
   ],
   credentials: true
 }));
+
 
 app.get('/', (req, res) => {
   res.send('Hello World');
