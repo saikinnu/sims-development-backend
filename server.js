@@ -41,18 +41,18 @@ const app = express();
 app.use(express.json());
 const cors = require('cors');
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'capacitor://localhost',
-    'https://sims-baseldts.vercel.app',
-    'https://sims-frontend-dun.vercel.app',
-    'https://sims-client-govt.vercel.app',
-    'https://sims-client-bdts-govt.vercel.app'
-  ],
-  credentials: true
-}));
-
+// app.use(cors({
+//   origin: [
+//     'http://localhost:5173',
+//     'capacitor://localhost',
+//     'https://sims-baseldts.vercel.app',
+//     'https://sims-frontend-dun.vercel.app',
+//     'https://sims-client-govt.vercel.app',
+//     'https://sims-client-bdts-govt.vercel.app'
+//   ],
+//   credentials: true
+// }));
+app.use(cors());
 
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
