@@ -54,10 +54,6 @@ app.use(cors({
 }));
 
 
-app.get('/', (req, res) => {
-  res.send('Hello World');
-});
-
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
