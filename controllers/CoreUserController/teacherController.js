@@ -1,5 +1,6 @@
 const Teacher = require('../../models/CoreUser/Teacher');
 const User = require('../../models/CoreUser/User');
+const Student = require('../../models/CoreUser/Student');
 const { deleteImageFromCloudinary } = require('../../config/cloudinary');
 const cloudinary = require('cloudinary').v2;
 const bcrypt = require("bcryptjs");

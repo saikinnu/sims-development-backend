@@ -29,9 +29,19 @@ const TeacherScheduleSchema = new mongoose.Schema({
     required: [true, 'Subject is required'],
     trim: true
   },
-  classId: { 
+  period: { 
     type: String, 
     required: [true, 'Class ID is required'],
+    trim: true
+  },
+  className: {
+    type: String,
+    required: [true, 'Class name is required'],
+    trim: true
+  },
+  sectionName: {
+    type: String,
+    required: [true, 'Section name is required'],
     trim: true
   },
   createdAt:{
@@ -40,8 +50,13 @@ const TeacherScheduleSchema = new mongoose.Schema({
   },
   admin_id: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Teacher',
+    ref: 'Admin',
     required: true,
+  },
+  teacher_id:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Teacher',
+    reqquired: true
   },
 }, {
   timestamps: true // Adds createdAt and updatedAt fields

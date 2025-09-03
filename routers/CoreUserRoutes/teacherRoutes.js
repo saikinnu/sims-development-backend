@@ -11,6 +11,7 @@ const {
   searchTeachers,
   getTeacherDashboard,
   getTeacherByUserId,
+  getAllTeachersForStudent
 } = require('../../controllers/CoreUserController/teacherController');
 
 const { protect, adminOnly, checkRole } = require('../../middlewares/authMiddleware');

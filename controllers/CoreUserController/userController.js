@@ -80,8 +80,11 @@ exports.changePassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    const admin = await Admin.findOne({users:req.user.id});
+    admin.password = newPassword;
     
     await user.changePassword(currentPassword, newPassword);
+    await admin.save();
     
     res.status(200).json({ message: "Password changed successfully" });
   } catch (err) {

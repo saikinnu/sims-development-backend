@@ -6,6 +6,8 @@ const { protect, checkRole } = require('../../middlewares/authMiddleware');
 
 router.post('/', protect, checkRole('admin', 'teacher'), teacherScheduleController.createSchedule);
 
+router.get('/regular-schedule', protect,checkRole('student'),teacherScheduleController.getRegularSchedulesUnderStudent);
+
 router.get('/', protect, checkRole('admin', 'teacher', 'student', 'parent'), teacherScheduleController.getAllSchedules);
 
 router.get('/teacher/:teacherId', protect, checkRole('admin', 'teacher', 'student', 'parent'), teacherScheduleController.getSchedulesByTeacher);
