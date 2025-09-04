@@ -12,6 +12,13 @@ exports.createClass = async (req, res) => {
       });
     }
 
+    const classInfo = await Class.findOne({class_name: req.body.class_name,section: req.body.section,admin_id: req.user._id});
+    if (classInfo) {
+      return res.status(400).json({
+        message: 'Class with section already exists',
+      });
+    }
+
 
     const formattedTeachersDetails = req.body.teachers_details?.map(teacher => ({
       ...teacher,
