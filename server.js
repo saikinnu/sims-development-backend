@@ -45,6 +45,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'capacitor://localhost',
+    'http://localhost:8081',
     'https://sims-baseldts.vercel.app',
     'https://sims-frontend-dun.vercel.app',
     'https://sims-client-govt.vercel.app',
