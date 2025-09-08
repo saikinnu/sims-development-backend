@@ -50,8 +50,7 @@ app.use(cors({
     'https://sims-frontend-dun.vercel.app',
     'https://sims-client-govt.vercel.app',
     'https://sims-client-bdts-govt.vercel.app',
-    'http://13.54.13.60:5000',
-    'file://'
+    'http://13.54.13.60:5000'
   ],
   credentials: true
 }));
