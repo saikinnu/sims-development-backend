@@ -39,7 +39,7 @@ const paymentDetailsRoutes = require('./routers/Administrative/paymentDetailsRou
 
 const app = express();
 app.use(express.json());
-// const cors = require('cors');
+const cors = require('cors');
 
 // app.use(cors({
 //   origin: [
@@ -54,7 +54,7 @@ app.use(express.json());
 //   ],
 //   credentials: true
 // }));
-// app.use(cors());
+app.use(cors());
 
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
