@@ -57,7 +57,7 @@ const cors = require('cors');
 app.use(cors());
 
 app.get('/',function(req,res){
-  return res.send('Hello World!');
+  res.send('Hello World!');
 });
 
 app.use("/api/users", userRoutes);
