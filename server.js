@@ -56,6 +56,10 @@ const cors = require('cors');
 // }));
 app.use(cors());
 
+app.get('/',function(req,res){
+  return res.send('Hello World!');
+});
+
 app.use("/api/users", userRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
