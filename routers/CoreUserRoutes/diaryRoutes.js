@@ -11,7 +11,8 @@ router.delete('/homework/:id', protect, diaryController.deleteHomework);
 
 
 router.get('/homework/class/:classId/section/:section', protect, diaryController.getHomeworkByClassSection);
-router.get('/homework/class/:classId/section/:section/under-my-admin', protect, diaryController.getHomeworkByClassSectionUnderMyAdmin);
+// router.get('/homework/class/:classId/section/:section/under-my-admin', protect, diaryController.getHomeworkByClassSectionUnderMyAdmin);
+router.get('/homework/by-class', protect, diaryController.getHomeworkByClassSectionUnderMyAdmin);
 
 router.get('/homework/parent', protect, diaryController.getHomeworkForParent);
 

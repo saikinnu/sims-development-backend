@@ -39,41 +39,41 @@ exports.getHomeworkByClassSection = async (req, res) => {
   }
 };
 exports.getHomeworkByClassSectionUnderMyAdmin = async (req, res) => {
-  
   try {
-    const { classId, section } = req.params;
+    // const { classId, section } = req.params;
     
-    if (!classId || !section) {
-      return res.status(400).json({ message: 'Class and section are required' });
-    }
+    // if (!classId || !section) {
+    //   return res.status(400).json({ message: 'Class and section are required' });
+    // }
     
     const student = await Student.findOne({ users: req.user._id });
     
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+    console.log('class id is ',student.class_id);
 
-    const classNumber = classId.match(/\d+/)[0];
+    // const classNumber = classId.match(/\d+/)[0];
     
     // First, let's check what homework entries exist without filters
-    const allEntries = await HomeworkDiary.find({}).limit(5);
+    // const allEntries = await HomeworkDiary.find({}).limit(5);
     
     // Check for entries with just class and section (without admin filter)
-    const classSectionEntries = await HomeworkDiary.find({
-      classSelected: classNumber,
-      sectionSelected: section
-    }).sort({ date: -1 });
+    // const classSectionEntries = await HomeworkDiary.find({
+    //   classSelected: student.class_id,
+    //   sectionSelected: student.section
+    // }).sort({ date: -1 });
     
     // Check for entries with just admin_id
-    const adminEntries = await HomeworkDiary.find({
-      admin_id: student.admin_id
-    }).sort({ date: -1 });
+    // const adminEntries = await HomeworkDiary.find({
+    //   admin_id: student.admin_id
+    // }).sort({ date: -1 });
 
     
     // Now try the specific query
     const entries = await HomeworkDiary.find({
-      classSelected: classNumber,
-      sectionSelected: section,
+      classSelected: student.class_id,
+      sectionSelected: student.section,
       admin_id: student.admin_id
     }).sort({ date: -1 });
     
