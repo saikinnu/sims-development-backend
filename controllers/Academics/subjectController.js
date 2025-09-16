@@ -57,7 +57,7 @@ exports.getAllSubjects = async (req, res) => {
 exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
   try {
     const teacher = await Teacher.findOne({ users: req.user._id });
-    console.log('Found teacher:', teacher ? 'Yes' : 'No');
+  
     
     if (!teacher) {
       console.log('Teacher not found for user:', req.user._id);
@@ -69,12 +69,10 @@ exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
     
     // Check if teacher is a class teacher
     if (teacher.class_teacher) {
-      // If teacher is a class teacher, only fetch subjects from their assigned class
-      const classTeacherAssignment = teacher.class_teacher;
       
-      // Parse the class_teacher field to get class and section
-      // Expected format: "1st-A", "2nd-B", "3rd-C", etc.
+      const classTeacherAssignment = teacher.class_teacher;
       const lastHyphenIndex = classTeacherAssignment.lastIndexOf('-');
+
       if (lastHyphenIndex === -1) {
         return res.status(400).json({ 
           message: 'Invalid class teacher assignment format. Expected format: "className-section"' 
@@ -127,10 +125,7 @@ exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
       }
       
       subjects = exactMatchSubjects;
-      
-      console.log(`Teacher ${teacher.full_name} is class teacher for ${className}-${section}`);
-      console.log(`Found ${subjects.length} subjects for class ${className}`);
-      console.log('Subject classNames:', subjects.map(s => s.className));
+  
     } else {
       // For teachers without class assignment, fetch all subjects under their admin
       subjects = await Subject.find({ admin_id: teacher.admin_id }).sort({ createdAt: -1 });
