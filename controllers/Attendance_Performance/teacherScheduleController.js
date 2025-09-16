@@ -64,8 +64,10 @@ exports.createSchedule = async (req, res) => {
   }
 };
 exports.getRegularSchedulesUnderStudent = async (req, res) => {
+  console.log('working fine');
   try {
     const student = await Student.findOne({ users: req.user._id });
+    
 
     if (!student) {
       return res.status(400).json({ error: 'Student not found' });

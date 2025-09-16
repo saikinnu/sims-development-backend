@@ -35,6 +35,11 @@ const SubjectSchema = new mongoose.Schema(
         empId: {
           type: String,
           required: true
+        },
+        teacher_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
         }
       }
     ],

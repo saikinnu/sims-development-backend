@@ -11,8 +11,15 @@ exports.createSubject = async (req, res) => {
       return res.status(400).json({ message: 'Subject name, class name, and at least one teacher are required' });
     }
 
-    // Validate teachers array
-    const validTeachers = teachers.filter(teacher => teacher.name && teacher.empId);
+    const teacherEmpId = teachers.map(t => t.empId);
+    const teacherInfo = await Teacher.find({admin_id:req.user._id,user_id:teacherEmpId});
+
+    const validTeachers = teachers.map(teacher => ({
+      name: teacher.name,
+      empId: teacher.empId,
+      teacher_id: teacherInfo.find(t => t.user_id === teacher.empId).users
+    }));
+
     if (validTeachers.length === 0) {
       return res.status(400).json({ message: 'At least one valid teacher (with name and employee ID) is required' });
     }
@@ -49,8 +56,6 @@ exports.getAllSubjects = async (req, res) => {
 
 exports.getAllSubjectsUnderMyAdmin = async (req, res) => {
   try {
-    
-    
     const teacher = await Teacher.findOne({ users: req.user._id });
     console.log('Found teacher:', teacher ? 'Yes' : 'No');
     
