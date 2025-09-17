@@ -9,6 +9,7 @@ const UserSchema = new Schema({
     type: String,
     // default: uuidv4,
     unique: true,
+    required:true
   },
   full_name:{
     type:String
