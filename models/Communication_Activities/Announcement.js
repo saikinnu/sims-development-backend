@@ -9,11 +9,6 @@ const AnnouncementSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // target: [{
-  //   type:String,
-  //   enum: ['All', 'Teachers', 'Students', 'Parents', 'Staff'],
-  //   default:'All',
-  // }],
   target:[{
     type:mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -35,7 +30,6 @@ const AnnouncementSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
-    required: true,
   },
   status: {
     type: String, 
