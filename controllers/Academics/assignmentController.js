@@ -3,15 +3,33 @@ const mongoose = require('mongoose');
 const Teacher = require('../../models/CoreUser/Teacher');
 const Student = require('../../models/CoreUser/Student');
 const Class = require('../../models/AcademicSchema/Class');
+const Admin = require('../../models/CoreUser/Admin');
 
 exports.createAssignment = async (req, res) => {
   try {
+    console.log('createAssignment', req.body);
 
-    const validSections = ['A', 'B', 'C', 'D', 'E', 'F'];
-    if (!req.body.section || !validSections.includes(req.body.section)) {
-      return res.status(400).json({ message: 'Section is required and must be one of A, B, C, D, E, F.' });
+    const adminId = await Admin.findOne({ users: req.user._id });
+    if (!adminId) {
+      return res.status(404).json({ message: 'Admin not found' });
     }
-    const newAssignment = new Assignment(req.body);
+
+    const classId = await Class.find({ admin_id: adminId.users, class_name: req.body.class, section: req.body.section });
+
+    if (!classId[0]._id) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+    
+    const newAssignment = new Assignment({
+      class: classId[0]._id,
+      subject: req.body.subject,
+      title: req.body.title,
+      description: req.body.description,
+      dueDate: req.body.dueDate,
+      section: req.body.section,
+      file: req.body.file,
+      admin_id: adminId.users
+    });
     const savedAssignment = await newAssignment.save();
     res.status(201).json(savedAssignment);
   } catch (error) {
@@ -39,32 +57,27 @@ exports.createAssignmentUnderMyAdmin = async (req, res) => {
     // Check if the teacher is trying to create assignment for a class they're assigned to
     const Class = require('../../models/AcademicSchema/Class');
     const targetClass = await Class.findById(req.body.class);
-    
+
     if (!targetClass) {
       return res.status(404).json({ message: 'Class not found' });
     }
 
     // Check if teacher has permission for this class
-    const hasPermission = assignedClasses.includes(targetClass.class_name) || 
-                         (classTeacher && classTeacher === targetClass.class_name);
+    // const hasPermission = assignedClasses.includes(targetClass.class_name) || 
+    //                      (classTeacher && classTeacher === targetClass.class_name);
 
-    // if (!hasPermission) {
-    //   return res.status(403).json({ 
-    //     message: 'You can only create assignments for classes you are assigned to' 
-    //   });
-    // }
 
     req.body.admin_id = teacher.admin_id;
     req.body.teacher_id = teacher._id; // Set the teacher_id to the current teacher
-    
+
     const newAssignment = new Assignment(req.body);
     const savedAssignment = await newAssignment.save();
-    
+
     // Populate the saved assignment to return complete data
     const populatedAssignment = await Assignment.findById(savedAssignment._id)
       .populate("class", "class_name")
       .populate("subject", "name");
-    
+
     res.status(201).json(populatedAssignment);
   } catch (error) {
     console.error("Error creating assignment:", error);
@@ -76,25 +89,18 @@ exports.createAssignmentUnderMyAdmin = async (req, res) => {
 exports.getAllAssignments = async (req, res) => {
   try {
     let filter = {};
-    
-    console.log('getAllAssignments called with:', { 
-      userRole: req.user.role, 
-      query: req.query, 
-      userId: req.user._id,
-      userClassId: req.user.class_id,
-      userSection: req.user.section
-    });
-    
+
+
     // If user is a student, filter by class and section without admin_id restriction
     if (req.user.role === 'student') {
       // Use the user's class_id and section from their profile
       const userClassId = req.user.class_id;
       const userSection = req.user.section;
-      
+
       if (userClassId) {
         // Handle both class ID and class name
         const Class = require('../../models/AcademicSchema/Class');
-        
+
         // First try to find by ObjectId (if it's a valid ObjectId)
         if (mongoose.Types.ObjectId.isValid(userClassId)) {
           filter.class = userClassId;
@@ -108,11 +114,11 @@ exports.getAllAssignments = async (req, res) => {
           }
         }
       }
-      
+
       if (userSection) {
         filter.section = userSection;
       }
-      
+
       // Also check query parameters if provided (for backward compatibility)
       if (req.query.class && !userClassId) {
         const Class = require('../../models/AcademicSchema/Class');
@@ -135,13 +141,10 @@ exports.getAllAssignments = async (req, res) => {
       if (req.query.section) filter.section = req.query.section;
     }
 
-    console.log('Final filter:', filter);
 
     const assignments = await Assignment.find(filter)
       .populate("class", "class_name")
       .populate("subject", "name");
-
-    console.log('Found assignments:', assignments.length);
 
     res.status(200).json(assignments);
   } catch (error) {
@@ -162,30 +165,30 @@ exports.getAllAssignmentsUnderMyAdmin = async (req, res) => {
 
     // Build filter based on teacher's assigned classes
     let filter = { admin_id: teacher.admin_id };
-    
+
     // If teacher has assigned classes, filter by those classes
     if (assignedClasses.length > 0 || classTeacher) {
       const classFilter = [];
-      
+
       // Add assigned classes
       if (assignedClasses.length > 0) {
         classFilter.push(...assignedClasses);
       }
-      
+
       // Add class teacher class if different from assigned classes
       if (classTeacher && !assignedClasses.includes(classTeacher)) {
         classFilter.push(classTeacher);
       }
-      
+
       // Find class documents to get ObjectIds
       const Class = require('../../models/AcademicSchema/Class');
-      const classDocs = await Class.find({ 
+      const classDocs = await Class.find({
         class_name: { $in: classFilter },
-        admin_id: teacher.admin_id 
+        admin_id: teacher.admin_id
       });
-      
+
       const classIds = classDocs.map(cls => cls._id);
-      
+
       if (classIds.length > 0) {
         filter.class = { $in: classIds };
       }
@@ -214,15 +217,10 @@ exports.getAllAssignmentsUnderStudent = async (req, res) => {
       return res.status(404).json({ message: 'Class not found for student' });
     }
 
-    console.log('classRecord is ',classRecord._id);
-    console.log('student is ',student.section);
 
     const assignments = await Assignment.find({ class: classRecord._id, section: student.section })
       .populate("class", "class_name")
       .populate("subject", "name");
-
-
-      console.log('assignments are ',assignments);
 
     res.status(200).json(assignments);
   } catch (error) {
@@ -280,21 +278,21 @@ exports.updateAssignment = async (req, res) => {
       // Check if teacher owns this assignment or has permission for the class
       const assignedClasses = teacher.assigned_classes || [];
       const classTeacher = teacher.class_teacher;
-      
+
       const Class = require('../../models/AcademicSchema/Class');
       const targetClass = await Class.findById(assignment.class);
-      
+
       if (!targetClass) {
         return res.status(404).json({ message: 'Class not found' });
       }
 
       const hasPermission = assignment.teacher_id?.toString() === teacher._id.toString() ||
-                           assignedClasses.includes(targetClass.class_name) ||
-                           (classTeacher && classTeacher === targetClass.class_name);
+        assignedClasses.includes(targetClass.class_name) ||
+        (classTeacher && classTeacher === targetClass.class_name);
 
       if (!hasPermission) {
-        return res.status(403).json({ 
-          message: 'You can only update assignments for classes you are assigned to' 
+        return res.status(403).json({
+          message: 'You can only update assignments for classes you are assigned to'
         });
       }
     }
@@ -346,35 +344,13 @@ exports.deleteAssignment = async (req, res) => {
       // Check if teacher owns this assignment or has permission for the class
       const assignedClasses = teacher.assigned_classes || [];
       const classTeacher = teacher.class_teacher;
-      
+
       const Class = require('../../models/AcademicSchema/Class');
       const targetClass = await Class.findById(assignment.class);
-      
+
       if (!targetClass) {
         return res.status(404).json({ message: 'Class not found' });
       }
-
-      // Debug logging to understand the permission check
-      // console.log('Delete Assignment Permission Check:', {
-      //   teacherId: teacher._id.toString(),
-      //   assignmentTeacherId: assignment.teacher_id?.toString(),
-      //   assignedClasses: assignedClasses,
-      //   classTeacher: classTeacher,
-      //   targetClassName: targetClass.class_name,
-      //   isOwner: assignment.teacher_id?.toString() === teacher._id.toString(),
-      //   isAssignedClass: assignedClasses.includes(targetClass.class_name),
-      //   isClassTeacher: classTeacher && classTeacher === targetClass.class_name
-      // });
-
-      // const hasPermission = assignment.teacher_id?.toString() === teacher._id.toString() ||
-      //                      assignedClasses.includes(targetClass.class_name) ||
-      //                      (classTeacher && classTeacher === targetClass.class_name);
-
-      // if (!hasPermission) {
-      //   return res.status(403).json({ 
-      //     message: 'You can only delete assignments for classes you are assigned to' 
-      //   });
-      // }
     }
 
     const deletedAssignment = await Assignment.findByIdAndDelete(req.params.id);

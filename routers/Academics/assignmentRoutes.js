@@ -10,7 +10,6 @@ router.post(
   '/',
   protect,
   checkRole('teacher', 'admin'),
-  uploadAssignmentFile.single('file'),
   assignmentController.createAssignment
 );
 
