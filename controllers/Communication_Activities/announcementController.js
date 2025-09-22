@@ -9,7 +9,7 @@ exports.createAnnouncement = async (req, res) => {
   try {
     const { title, content, target, class: classId, section, startDate, endDate, status, admin_id } = req.body;
     let recipientIds = [];
-    
+
     if (target && Array.isArray(target)) {
       // Handle array of target values
       for (const targetValue of target) {
@@ -45,7 +45,7 @@ exports.createAnnouncement = async (req, res) => {
             return res.status(400).json({ message: "Invalid group specified" });
         }
       }
-      
+
       // Remove duplicates
       recipientIds = [...new Set(recipientIds)];
     } else if (target) {
@@ -105,8 +105,8 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
     }
 
     const { title, content, target, class: classId, section, startDate, endDate, status } = req.body;
-    console.log('Received request body:', { title, content, target, class: classId, section, startDate, endDate, status });
-    
+
+
     // Convert class ID to class name if needed
     let className = classId;
     if (classId && typeof classId === 'string' && classId.length === 24) {
@@ -116,53 +116,44 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
         const classDoc = await Class.findById(classId);
         if (classDoc) {
           className = classDoc.class_name;
-          console.log('Converted class ID to class name:', classId, '->', className);
+
         }
       } catch (error) {
         console.log('Error converting class ID to name:', error);
       }
     }
-    
+
     // Debug: Check what classes and sections exist in the database
     const allStudents = await Student.find({ admin_id: teacher.admin_id }).select('class_id section');
     const uniqueClasses = [...new Set(allStudents.map(s => s.class_id).filter(Boolean))];
     const uniqueSections = [...new Set(allStudents.map(s => s.section).filter(Boolean))];
-    console.log('Available classes in DB:', uniqueClasses);
-    console.log('Available sections in DB:', uniqueSections);
-    console.log('Requested class:', classId, '-> className:', className, 'type:', typeof className);
-    console.log('Requested section:', section, 'type:', typeof section);
-    
+
+
     let recipientIds = [];
-    
+
     if (target && Array.isArray(target)) {
       // Handle array of target values
       for (const targetValue of target) {
         switch (targetValue) {
           case 'all_students':
             let studentQuery = { admin_id: teacher.admin_id };
-            
+
             // Add class filter if specified
             if (className) {
               studentQuery.class_id = className;
             }
-            
+
             // Add section filter if specified
             if (section) {
               studentQuery.section = section;
             }
-            
-            console.log('Student query:', studentQuery);
+
+
             const students = await Student.find(studentQuery)
               .populate('users', '_id');
             const studentIds = students.map(student => student.users?._id).filter(Boolean);
-            console.log(`Found ${students.length} students for query:`, studentQuery);
-            console.log(`Student user IDs:`, studentIds.length);
-            console.log('Sample student data:', students.slice(0, 2).map(s => ({ 
-              class_id: s.class_id, 
-              section: s.section, 
-              admin_id: s.admin_id,
-              user_id: s.users?._id 
-            })));
+
+
             recipientIds = [...recipientIds, ...studentIds];
             break;
 
@@ -177,27 +168,27 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
             // If class or section is specified, get parents of students in that class/section
             if (className || section) {
               let studentQuery = { admin_id: teacher.admin_id };
-              
+
               if (className) {
                 studentQuery.class_id = className;
               }
-              
+
               if (section) {
                 studentQuery.section = section;
               }
-              
+
               // Get students in the specified class/section
               const students = await Student.find(studentQuery).select('parent_id');
               const parentIds = students.flatMap(student => student.parent_id || []).filter(Boolean);
-              
+
               // Get parent user IDs
-              const parents = await Parent.find({ 
+              const parents = await Parent.find({
                 _id: { $in: parentIds },
-                admin_id: teacher.admin_id 
+                admin_id: teacher.admin_id
               }).populate('users', '_id');
-              
+
               const parentUserIds = parents.map(parent => parent.users?._id).filter(Boolean);
-              console.log(`Found ${students.length} students, ${parentIds.length} parent IDs, ${parents.length} parents, ${parentUserIds.length} parent user IDs`);
+
               recipientIds = [...recipientIds, ...parentUserIds];
             } else {
               // If no class/section specified, get all parents
@@ -218,7 +209,7 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
             return res.status(400).json({ message: "Invalid group specified" });
         }
       }
-      
+
       // Remove duplicates
       recipientIds = [...new Set(recipientIds)];
     } else if (target) {
@@ -226,27 +217,22 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
       switch (target) {
         case 'all_students':
           let studentQuery = { admin_id: teacher.admin_id };
-          
+
           // Add class filter if specified
           if (className) {
             studentQuery.class_id = className;
           }
-          
+
           // Add section filter if specified
           if (section) {
             studentQuery.section = section;
           }
-          
-          console.log('Student query (single target):', studentQuery);
+
+
           const students = await Student.find(studentQuery)
             .populate('users', '_id');
-          console.log(`Found ${students.length} students for single target query`);
-          console.log('Sample student data (single target):', students.slice(0, 2).map(s => ({ 
-            class_id: s.class_id, 
-            section: s.section, 
-            admin_id: s.admin_id,
-            user_id: s.users?._id 
-          })));
+
+
           recipientIds = students.map(student => student.users?._id).filter(Boolean);
           break;
 
@@ -256,29 +242,29 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
           recipientIds = teachers.map(teacher => teacher.users?._id).filter(Boolean);
           break;
 
-                 case 'all_parents':
-           // If class or section is specified, get parents of students in that class/section
-           if (className || section) {
-             let studentQuery = { admin_id: teacher.admin_id };
-             
-             if (className) {
-               studentQuery.class_id = className;
-             }
-            
+        case 'all_parents':
+          // If class or section is specified, get parents of students in that class/section
+          if (className || section) {
+            let studentQuery = { admin_id: teacher.admin_id };
+
+            if (className) {
+              studentQuery.class_id = className;
+            }
+
             if (section) {
               studentQuery.section = section;
             }
-            
-                         // Get students in the specified class/section
-             const students = await Student.find(studentQuery).select('parent_id');
-             const parentIds = students.flatMap(student => student.parent_id || []).filter(Boolean);
-            
+
+            // Get students in the specified class/section
+            const students = await Student.find(studentQuery).select('parent_id');
+            const parentIds = students.flatMap(student => student.parent_id || []).filter(Boolean);
+
             // Get parent user IDs
-            const parents = await Parent.find({ 
+            const parents = await Parent.find({
               _id: { $in: parentIds },
-              admin_id: teacher.admin_id 
+              admin_id: teacher.admin_id
             }).populate('users', '_id');
-            
+
             const parentUserIds = parents.map(parent => parent.users?._id).filter(Boolean);
             recipientIds = parentUserIds;
           } else {
@@ -299,10 +285,8 @@ exports.createAnnouncementUnderMyAdmin = async (req, res) => {
       }
     }
 
-    console.log('Creating announcement with recipient IDs:', recipientIds.length, 'recipients');
-    console.log('Class ID:', classId, '-> Class Name:', className, 'Section:', section);
-    console.log('Target groups:', target);
     
+
     const announcement = await Announcement.create({
       title,
       content,
@@ -328,7 +312,7 @@ exports.getAnnouncements = async (req, res) => {
   try {
     const role = req.user.role;
     const now = new Date();
-    const announcements = await Announcement.find({admin_id: req.user._id}).sort({ publish_date: -1 });
+    const announcements = await Announcement.find({ admin_id: req.user._id }).sort({ publish_date: -1 });
 
     res.json(announcements);
   } catch (err) {
@@ -346,7 +330,7 @@ exports.getAnnouncementsUnderMyAdmin = async (req, res) => {
 
     const role = req.user.role;
     const now = new Date();
-    
+
     // Get all announcements under this admin
     const allAnnouncements = await Announcement.find({
       admin_id: teacher.admin_id
@@ -359,7 +343,7 @@ exports.getAnnouncementsUnderMyAdmin = async (req, res) => {
     const adminAnnouncements = allAnnouncements.filter(announcement => {
       // If no author_id, it's an old admin announcement
       if (!announcement.author_id) return true;
-      
+
       // If author has role 'admin', it's an admin announcement
       return announcement.author_id.role === 'admin';
     });
@@ -377,12 +361,12 @@ exports.getAnnouncementsForStudent = async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
-    const teacher = await Teacher.findOne({admin_id: student.admin_id});
+    const teacher = await Teacher.findOne({ admin_id: student.admin_id });
 
     const role = req.user.role;
     const now = new Date();
     // const announcements = await Announcement.find({admin_id: student.admin_id}).sort({ publish_date: -1 });
-    const announcements = await Announcement.find({$or:[{admin_id: student.admin_id},{author_id : teacher.users}]}).sort({ publish_date: -1 });
+    const announcements = await Announcement.find({ $or: [{ admin_id: student.admin_id }, { author_id: teacher.users }] }).sort({ publish_date: -1 });
 
     res.json(announcements);
   } catch (err) {
@@ -397,12 +381,12 @@ exports.getAnnouncementsForParent = async (req, res) => {
     if (!parent) {
       return res.status(404).json({ message: 'Parent not found' });
     }
-    const teacher = await Teacher.findOne({admin_id: parent.admin_id});
+    const teacher = await Teacher.findOne({ admin_id: parent.admin_id });
 
     const role = req.user.role;
     const now = new Date();
     // const announcements = await Announcement.find({admin_id: parent.admin_id}).sort({ publish_date: -1 });
-    const announcements = await Announcement.find({$or:[{admin_id: parent.admin_id},{author_id : teacher.users}]}).sort({ publish_date: -1 });
+    const announcements = await Announcement.find({ $or: [{ admin_id: parent.admin_id }, { author_id: teacher.users }] }).sort({ publish_date: -1 });
 
     res.json(announcements);
   } catch (err) {
@@ -428,7 +412,7 @@ exports.getAnnouncementsCreatedByMe = async (req, res) => {
 
 exports.getAnnouncementById = async (req, res) => {
   try {
-    const announcement = await Announcement.findById(req.params.id,{admin_id: req.user._id}).populate('author_id', 'full_name');
+    const announcement = await Announcement.findById(req.params.id, { admin_id: req.user._id }).populate('author_id', 'full_name');
     if (!announcement) return res.status(404).json({ message: 'Announcement not found' });
     res.json(announcement);
   } catch (err) {
@@ -441,7 +425,7 @@ exports.updateAnnouncement = async (req, res) => {
   try {
     const { title, content, target, startDate, endDate, status } = req.body;
     let recipientIds = [];
-    
+
     if (target && Array.isArray(target)) {
       // Handle array of target values
       for (const targetValue of target) {
@@ -477,7 +461,7 @@ exports.updateAnnouncement = async (req, res) => {
             return res.status(400).json({ message: "Invalid group specified" });
         }
       }
-      
+
       // Remove duplicates
       recipientIds = [...new Set(recipientIds)];
     }
@@ -510,7 +494,7 @@ exports.updateAnnouncementUnderMyAdmin = async (req, res) => {
 
     const { title, content, target, startDate, endDate, status } = req.body;
     let recipientIds = [];
-    
+
     if (target && Array.isArray(target)) {
       // Handle array of target values
       for (const targetValue of target) {
@@ -546,7 +530,7 @@ exports.updateAnnouncementUnderMyAdmin = async (req, res) => {
             return res.status(400).json({ message: "Invalid group specified" });
         }
       }
-      
+
       // Remove duplicates
       recipientIds = [...new Set(recipientIds)];
     }
@@ -573,7 +557,7 @@ exports.updateAnnouncementUnderMyAdmin = async (req, res) => {
 
 exports.deleteAnnouncement = async (req, res) => {
   try {
-    const deleted = await Announcement.findByIdAndDelete(req.params.id,{admin_id: req.user._id});
+    const deleted = await Announcement.findByIdAndDelete(req.params.id, { admin_id: req.user._id });
     if (!deleted) return res.status(404).json({ message: 'Announcement not found' });
     res.json({ message: 'Announcement deleted successfully' });
   } catch (err) {
