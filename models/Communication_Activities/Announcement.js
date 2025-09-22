@@ -30,6 +30,7 @@ const AnnouncementSchema = new mongoose.Schema({
   },
   endDate: {
     type: Date,
+    default: null
   },
   status: {
     type: String, 
