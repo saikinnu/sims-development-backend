@@ -328,7 +328,7 @@ exports.updateAssignment = async (req, res) => {
       return res.status(404).json({ message: "Assignment not found" });
     }
 
-    // res.status(200).json(updatedAssignment);
+    res.status(200).json(updatedAssignment);
   } catch (error) {
     console.error("Error updating assignment:", error);
     res.status(500).json({ message: "Server error", error: error.message });
