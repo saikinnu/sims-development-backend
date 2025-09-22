@@ -78,6 +78,7 @@ exports.createAnnouncement = async (req, res) => {
           return res.status(400).json({ message: "Invalid group specified" });
       }
     }
+    console.log('req end date is ',req.body.endDate);
 
     const announcement = await Announcement.create({
       title,
