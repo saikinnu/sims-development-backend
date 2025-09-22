@@ -7,7 +7,6 @@ const Admin = require('../../models/CoreUser/Admin');
 
 exports.createAssignment = async (req, res) => {
   try {
-    console.log('createAssignment', req.body);
 
     const adminId = await Admin.findOne({ users: req.user._id });
     if (!adminId) {
@@ -19,7 +18,7 @@ exports.createAssignment = async (req, res) => {
     if (!classId[0]._id) {
       return res.status(404).json({ message: 'Class not found' });
     }
-    
+
     const newAssignment = new Assignment({
       class: classId[0]._id,
       subject: req.body.subject,
@@ -261,7 +260,13 @@ exports.updateAssignment = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid assignment ID format' });
     }
+    const adminId = await Admin.findOne({ users: req.user._id });
+    if (!adminId) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
 
+
+    const classId = await Class.find({ admin_id: adminId.users, class_name: req.body.class, section: req.body.section });
     // Check if user is a teacher and verify permissions
     if (req.user.role === 'teacher') {
       const teacher = await Teacher.findOne({ users: req.user._id });
@@ -280,15 +285,16 @@ exports.updateAssignment = async (req, res) => {
       const classTeacher = teacher.class_teacher;
 
       const Class = require('../../models/AcademicSchema/Class');
-      const targetClass = await Class.findById(assignment.class);
+      // const targetClass = await Class.findById(assignment.class);
+      classId = await Class.find({ admin_id: adminId.users, class_name: req.body.class, section: req.body.section });
 
-      if (!targetClass) {
+      if (!classId) {
         return res.status(404).json({ message: 'Class not found' });
       }
 
       const hasPermission = assignment.teacher_id?.toString() === teacher._id.toString() ||
-        assignedClasses.includes(targetClass.class_name) ||
-        (classTeacher && classTeacher === targetClass.class_name);
+        assignedClasses.includes(classId[0].class_name) ||
+        (classTeacher && classTeacher === classId[0].class_name);
 
       if (!hasPermission) {
         return res.status(403).json({
@@ -305,7 +311,16 @@ exports.updateAssignment = async (req, res) => {
     }
     const updatedAssignment = await Assignment.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      // req.body,
+      {
+        class: classId[0]._id,
+        subject: req.body.subject,
+        title: req.body.title,
+        description: req.body.description,
+        dueDate: req.body.dueDate,
+        section: req.body.section,
+        file: req.body.file,
+      },
       { new: true, runValidators: true }
     );
 
@@ -313,7 +328,7 @@ exports.updateAssignment = async (req, res) => {
       return res.status(404).json({ message: "Assignment not found" });
     }
 
-    res.status(200).json(updatedAssignment);
+    // res.status(200).json(updatedAssignment);
   } catch (error) {
     console.error("Error updating assignment:", error);
     res.status(500).json({ message: "Server error", error: error.message });
