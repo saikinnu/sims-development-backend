@@ -43,7 +43,7 @@ const AssignmentSchema = new mongoose.Schema({
   },
   section: {
     type: String,
-    enum: ['A', 'B', 'C', 'D', 'E', 'F'],
+    // enum: ['A', 'B', 'C', 'D', 'E', 'F'],
     required: true
   },
   admin_id: {
