@@ -224,14 +224,12 @@ exports.deleteParent = async (req, res) => {
 
 exports.getMyParentProfile = async (req, res) => {
   try {
-    console.log('getMyParentProfile called with user:', req.user);
 
     if (req.user.role !== 'parent') {
       return res.status(403).json({ message: 'Access denied: Parents only' });
     }
 
     const parent = await Parent.findOne({ users: req.user._id });
-    console.log('Found parent:', parent);
 
     if (!parent) {
       return res.status(404).json({ message: 'Parent profile not found' });
@@ -246,7 +244,6 @@ exports.getMyParentProfile = async (req, res) => {
     const students = await Student.find({
       parent_id: { $in: [parent._id.toString()] }
     });
-    console.log('Found students:', students.length);
 
 
     const studentsWithClassDetails = await Promise.all(
@@ -256,20 +253,23 @@ exports.getMyParentProfile = async (req, res) => {
           try {
             const Class = require('../../models/AcademicSchema/Class');
             classDetails = await Class.findOne({ class_name: student.class_id });
-            console.log('Found class details for', student.class_id, ':', classDetails);
           } catch (err) {
             console.error('Error fetching class details:', err);
           }
         }
+        const classTeacher = classDetails ? `${classDetails.class_name}-${classDetails.section}` : 'N/A';
+        const teacher = await Teacher.findOne({ class_teacher:classTeacher,admin_id: parent.admin_id });
 
+        
         return {
           ...student.toObject(),
-          class_id: classDetails
+          class_id: classDetails,
+          teacher: teacher.user_id,
+          teacherName: teacher.full_name,
         };
       })
     );
 
-    console.log('Sending response with', studentsWithClassDetails.length, 'students');
     res.json({
       parent,
       linkedStudents: studentsWithClassDetails,
@@ -281,9 +281,7 @@ exports.getMyParentProfile = async (req, res) => {
 };
 
 exports.getParentCount = async (req, res) => {
-  console.log('getParentCount called');
   try {
-    console.log('Attempting to count parents...');
     
     let adminIdToFilter;
 
@@ -298,7 +296,7 @@ exports.getParentCount = async (req, res) => {
 
     const query = adminIdToFilter ? { admin_id: adminIdToFilter } : {};
     const count = await Parent.countDocuments(query);
-    console.log(`Found ${count} parents`);
+  
     res.json({ count });
   } catch (err) {
     console.error('Error in getParentCount:', err);
